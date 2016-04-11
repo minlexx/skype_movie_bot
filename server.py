@@ -39,7 +39,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.routes = {
             '/': self.handle_webroot,
             '/status': self.handle_status,
-            '/shutdown' : self.handle_shutdown,
+            '/shutdown': self.handle_shutdown,
             '/command': self.handle_command
         }
 
@@ -69,14 +69,9 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             ret = handler_function()
             return ret
         return False
-        # mname = 'do_' + 'zzz'
-        # if not hasattr(self, mname):
-        #    self.send_error(501, "Unsupported method (%r)" % self.command)
-        #    return
-        # method = getattr(self, mname)
-        # method()
 
     # return False if not static file was requested (guess by file name/ext)
+    # return True if file was served
     def serve_static_file(self):
         is_static = False
         path = str(self.path)
@@ -103,45 +98,55 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def _404_not_found(self):
         message = 'Not found: ' + str(self.path)
+        message_enc = message.encode(encoding='utf-8')
         #
         self.send_response(404)
         self.send_header('Content-Type', self.content_type)
+        self.send_header('Content-Length', len(message_enc))
         self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(message.encode('utf-8'))
+        self.wfile.write(message_enc)
         self.wfile.flush()
 
     def _301_redirect(self, location: str):
+        message = 'Location: <a href="' + str(location) + '">link</a>'
+        message_enc = message.encode(encoding='utf-8')
+        #
         self.send_response(301)  # moved permanently
         self.send_header('Location', str(location))
         self.send_header('Content-Type', self.content_type)
+        self.send_header('Content-Length', len(message_enc))
         self.end_headers()
-        message = 'Location: <a href="' + str(location) + '">link</a>'
-        self.wfile.write(message.encode('utf-8'))
+        self.wfile.write(message_enc)
 
     def handle_webroot(self):
         self._301_redirect('/status')
         return True
 
     def handle_status(self):
+        message = 'Status here'
+        message_enc = message.encode(encoding='utf-8')
+        #
         self.send_response(200)
         self.send_header('Content-Type', self.content_type)
-        self.send_header('Connection', 'close')
+        self.send_header('Content-Length', len(message_enc))
         self.end_headers()
-        message = 'Status here'
-        self.wfile.write(message.encode('utf-8'))
+        self.wfile.write(message_enc)
         return True
 
     def handle_command(self):
         return False
 
     def handle_shutdown(self):
+        message = 'Bot will be shut down!'
+        message_enc = message.encode(encoding='utf-8')
+        #
         self.send_response(200)
         self.send_header('Content-Type', self.content_type)
+        self.send_header('Content-Length', len(message_enc))
         self.send_header('Connection', 'close')
         self.end_headers()
-        message = 'Bot will be shut down!'
-        self.wfile.write(message.encode('utf-8'))
+        self.wfile.write(message_enc)
         self.wfile.flush()
         # self.server.shutdown()
         self.server.user_shutdown_request = True
@@ -150,7 +155,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
 class MovieBotService(http.server.HTTPServer, threading.Thread):
     def __init__(self, server_address):
-        # super(MovieBotService, self).__init__(server_address, MovieBotRequestHandler)
+        # explicitly initialize both parent classes
         http.server.HTTPServer.__init__(self, server_address, MovieBotRequestHandler)
         threading.Thread.__init__(self, daemon=False)
         #
@@ -215,4 +220,11 @@ if __name__ == '__main__':
     srv.start()
 
     # start http server
-    srv.serve_forever()
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        # Ctrl+C was pressed, now HTTP server is stopped,
+        # stop also BG Thread then
+        srv.user_shutdown_request = True
+
+    print('{0}: stopped.'.format(srv.name))
