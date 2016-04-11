@@ -7,6 +7,14 @@
 
 <body>
     <h1>Status here!</h1>
-    Русский язык
+
+    State:
+    % if server.is_shutting_down():
+    shutting down
+    % else:
+    running
+    % endif
+    <br />
+
 </body>
 </html>
