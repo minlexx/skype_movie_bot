@@ -8,6 +8,7 @@ import threading
 import configparser
 
 
+# HTTP Request handler. New object is created for each new request
 class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
     #
     # - self.client_address is a tuple(host, port)
@@ -18,7 +19,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
     # - self.wfile is a file object open for writing.
 
     def __init__(self, request, client_address, server):
-        # to make pycharm happy
+        # to make PyCharm happy
         self.content_type = ''
         self.request_method = ''
         self.routes = {}
@@ -94,6 +95,24 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(contents)
         except IOError:
             self._404_not_found()
+        return True
+
+    def serve_html(self, template_file: str):
+        html = ''
+        try:
+            f = open(template_file, mode='rt', encoding='utf-8')
+            html = f.read()
+            f.close()
+        except OSError:
+            sys.stderr.write('serve_html: Failed to open file: ' + template_file)
+            return False
+        html_enc = html.encode(encoding='utf-8')
+        self.content_type = 'text/html; charset=utf-8'
+        self.send_response(200)
+        self.send_header('Content-Type', self.content_type)
+        self.send_header('Content-length', len(html_enc))
+        self.end_headers()
+        self.wfile.write(html_enc)
         return True
 
     def _404_not_found(self):
