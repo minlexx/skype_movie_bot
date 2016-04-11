@@ -137,8 +137,10 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(message_enc)
         self.wfile.flush()
 
-    def _301_redirect(self, location: str):
-        message = 'Location: <a href="' + str(location) + '">link</a>'
+    def _301_redirect(self, location: str, content: str=None):
+        message = content
+        if message is None:
+            message = 'Location: <a href="' + str(location) + '">link</a>'
         message_enc = message.encode(encoding='utf-8')
         #
         self.send_response(301)  # moved permanently
@@ -160,15 +162,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def handle_shutdown(self):
         message = 'Bot will be shut down!'
-        message_enc = message.encode(encoding='utf-8')
         #
-        self.send_response(200)
-        self.send_header('Content-Type', self.content_type)
-        self.send_header('Content-Length', len(message_enc))
-        self.send_header('Connection', 'close')
-        self.end_headers()
-        self.wfile.write(message_enc)
-        self.wfile.flush()
+        self._301_redirect('/status', content=message)
         # self.server.shutdown()
         self.server.user_shutdown_request = True
         return True
