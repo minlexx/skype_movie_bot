@@ -90,7 +90,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header('Content-Type', self.content_type)
-            self.send_header('Content-length', len(contents))
+            self.send_header('Content-Length', len(contents))
             self.end_headers()
             self.wfile.write(contents)
         except IOError:
@@ -110,7 +110,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.content_type = 'text/html; charset=utf-8'
         self.send_response(200)
         self.send_header('Content-Type', self.content_type)
-        self.send_header('Content-length', len(html_enc))
+        self.send_header('Content-Length', len(html_enc))
         self.end_headers()
         self.wfile.write(html_enc)
         return True
@@ -174,6 +174,7 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
         self.user_shutdown_request = False
         self.name = 'MovieBotService'
         self.daemon = False
+        self._is_shutting_down = False
         #
         if len(self.server_address) == 2:
             print('{0} listening @ {1}:{2}'.format(
@@ -181,11 +182,16 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
                 self.server_address[0],
                 self.server_address[1]))
 
+    def is_shutting_down(self):
+        return self._is_shutting_down
+
+    # background thread function
     def run(self):
         print('BG Thread started')
         while not self.user_shutdown_request:
             time.sleep(1)
         print('BG Thread: shutting down http server')
+        self._is_shutting_down = True
         self.shutdown()
         print('BG Thread: ending')
         return
