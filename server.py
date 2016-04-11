@@ -143,15 +143,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return True
 
     def handle_status(self):
-        message = 'Status here'
-        message_enc = message.encode(encoding='utf-8')
-        #
-        self.send_response(200)
-        self.send_header('Content-Type', self.content_type)
-        self.send_header('Content-Length', len(message_enc))
-        self.end_headers()
-        self.wfile.write(message_enc)
-        return True
+        return self.serve_html('html/status.html')
 
     def handle_command(self):
         return False
