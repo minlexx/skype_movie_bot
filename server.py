@@ -7,6 +7,8 @@ import http.server
 import threading
 import configparser
 
+from classes.template_engine import TemplateEngine
+
 
 # HTTP Request handler. New object is created for each new request
 class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -43,6 +45,13 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             '/shutdown': self.handle_shutdown,
             '/command': self.handle_command
         }
+
+    # factory method to create template engine and assign default variables to it
+    def create_template_engine(self) -> TemplateEngine:
+        tmpl = TemplateEngine(self.server.get_template_engine_config())
+        # default variables
+        tmpl.assign('server', self.server)
+        return tmpl
 
     def do_GET(self):
         self.request_method = 'GET'
@@ -98,15 +107,16 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return True
 
     def serve_html(self, template_file: str):
-        html = ''
-        try:
-            f = open(template_file, mode='rt', encoding='utf-8')
-            html = f.read()
-            f.close()
-        except OSError:
-            sys.stderr.write('serve_html: Failed to open file: ' + template_file)
-            return False
-        html_enc = html.encode(encoding='utf-8')
+        tmpl = self.create_template_engine()
+        html = tmpl.render(template_file, expose_errors=True)
+        # Mako can sometimes return 'bytes' instead of 'str' directly here...
+        # UGLY FIX IT
+        # also you should encode template files in UTF-8 with BOM (Byte Order Mark)
+        html_enc = html
+        if type(html) == str:
+            # if the result is 'str' (unicode), we must convert it to 'bytes'
+            html_enc = html.encode(encoding='utf-8')
+        #
         self.content_type = 'text/html; charset=utf-8'
         self.send_response(200)
         self.send_header('Content-Type', self.content_type)
@@ -143,7 +153,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return True
 
     def handle_status(self):
-        return self.serve_html('html/status.html')
+        return self.serve_html('status.html')
 
     def handle_command(self):
         return False
@@ -165,7 +175,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 class MovieBotService(http.server.HTTPServer, threading.Thread):
-    def __init__(self, server_address):
+    def __init__(self, server_address, templates_dir, templates_cache_dir):
         # explicitly initialize both parent classes
         http.server.HTTPServer.__init__(self, server_address, MovieBotRequestHandler)
         threading.Thread.__init__(self, daemon=False)
@@ -175,6 +185,8 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
         self.name = 'MovieBotService'
         self.daemon = False
         self._is_shutting_down = False
+        self.templates_dir = templates_dir
+        self.templates_cache_dir = templates_cache_dir
         #
         if len(self.server_address) == 2:
             print('{0} listening @ {1}:{2}'.format(
@@ -184,6 +196,13 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
 
     def is_shutting_down(self):
         return self._is_shutting_down
+
+    def get_template_engine_config(self) -> dict:
+        ret = {
+            'TEMPLATE_DIR': self.templates_dir,
+            'TEMPLATE_CACHE_DIR': self.templates_cache_dir,
+        }
+        return ret
 
     # background thread function
     def run(self):
@@ -206,6 +225,8 @@ if __name__ == '__main__':
     bind_port = 8000
     ssl_cert = ''
     ssl_key = ''
+    templates_dir = 'html'
+    templates_cache_dir = 'html/cache'
     #
     # read config
     #
@@ -224,10 +245,15 @@ if __name__ == '__main__':
             ssl_cert = str(cfg['server']['ssl_cert'])
         if 'ssl_key' in cfg['server']:
             ssl_key = str(cfg['server']['ssl_key'])
+    if cfg.has_section('html'):
+        if 'templates_dir' in cfg['html']:
+            templates_dir = cfg['html']['templates_dir']
+        if 'templates_cache_dir' in cfg['html']:
+            templates_cache_dir = cfg['html']['templates_cache_dir']
     #
     # create server object
     my_server_address = (bind_address, bind_port)
-    srv = MovieBotService(my_server_address)
+    srv = MovieBotService(my_server_address, templates_dir, templates_cache_dir)
 
     # wrap server socket to SSL, if HTTPS was enabled
     if use_https and (ssl_cert != '') and (ssl_key != ''):
