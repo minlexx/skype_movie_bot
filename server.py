@@ -5,6 +5,7 @@ import time
 import ssl
 import http.server
 import threading
+import configparser
 
 
 class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -93,6 +94,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
             self.send_response(200)
             self.send_header('Content-Type', self.content_type)
+            self.send_header('Content-length', len(contents))
             self.end_headers()
             self.wfile.write(contents)
         except IOError:
@@ -174,11 +176,43 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
 
 
 if __name__ == '__main__':
-    my_server_address = ('', 8000)
+    #
+    # defaults
+    #
+    use_https = False
+    bind_address = '0.0.0.0'
+    bind_port = 8000
+    ssl_cert = ''
+    ssl_key = ''
+    #
+    # read config
+    #
+    cfg = configparser.ConfigParser()
+    cfg.read('conf/bot.conf', encoding='utf-8')
+    if cfg.has_section('server'):
+        if 'bind_address' in cfg['server']:
+            bind_address = str(cfg['server']['bind_address'])
+        if 'bind_port' in cfg['server']:
+            bind_port = int(cfg['server']['bind_port'])
+        if 'https' in cfg['server']:
+            iuse_https = int(cfg['server']['https'])
+            if iuse_https != 0:
+                use_https = True
+        if 'ssl_cert' in cfg['server']:
+            ssl_cert = str(cfg['server']['ssl_cert'])
+        if 'ssl_key' in cfg['server']:
+            ssl_key = str(cfg['server']['ssl_key'])
+    #
+    # create server object
+    my_server_address = (bind_address, bind_port)
     srv = MovieBotService(my_server_address)
-    srv.socket = ssl.wrap_socket(srv.socket,
-                                 keyfile='ssl_certs/privkey.pem',
-                                 certfile='ssl_certs/fullchain.pem',
-                                 server_side=True)
+
+    # wrap server socket to SSL, if HTTPS was enabled
+    if use_https and (ssl_cert != '') and (ssl_key != ''):
+        srv.socket = ssl.wrap_socket(srv.socket, keyfile=ssl_key, certfile=ssl_cert, server_side=True)
+
+    # start BG thread
     srv.start()
+
+    # start http server
     srv.serve_forever()
