@@ -58,7 +58,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             '/': self.handle_webroot,
             '/status': self.handle_status,
             '/shutdown': self.handle_shutdown,
-            '/webhook': self.handle_webhook
+            '/webhook_chat': self.handle_webhook_chat
         }
 
     # factory method to create template engine and assign default variables to it
@@ -180,19 +180,78 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
     def handle_status(self):
         return self.serve_html('status.html')
 
-    def handle_webhook(self):
+    def handle_shutdown(self):
+        message = 'Bot will be shut down!'
+        self._301_redirect('/status', content=message)
+        self.server.user_shutdown_request = True
+        return True
+
+    def handle_webhook_chat(self):
+        """
+        Outgoing webhooks are how Bots get notifications about new messages
+        and other events. When your Bot registers via the Bot portal,
+        you provide a HTTPS callback URL used by Skype Bot API for notifications.
+
+        All messages are sent as POST requests to the Bot callback URL in JSON format
+
+        Supported notifications are:
+        - New message notification
+          The message sent to the Bot (1:1 or via Conversation).
+        - New attachment notification
+          The attachment sent to Bot (1:1 or via Conversation).
+        - Conversation event
+          Notifications are sent in case:
+          - Members are added or removed from the conversation.
+          - The conversation's topic name changed.
+          - The conversation's history is disclosed or hidden.
+        - A contact was added to or removed from the Bot's contact list.
+
+        Response from Bot Post requests
+        The expected response is a “201 Created” without body content.
+        Redirects will be ignored. Operations will time out after 5 seconds.
+        :return:
+        """
         if self.request_method != 'POST':
             sys.stderr.write('Webhook called not with POST method!')
             self._404_not_found()
             return False
-        return False
-
-    def handle_shutdown(self):
-        message = 'Bot will be shut down!'
         #
-        self._301_redirect('/status', content=message)
-        # self.server.shutdown()
-        self.server.user_shutdown_request = True
+        # first of all I want to log all requests
+        with open('_cache/log_webhook.txt', mode='at', encoding='utf-8') as f:
+            f.write('headers:\n')
+            for hh1 in self.headers.keys():
+                f.write('{0}: {1}'.format(hh1, self.headers[hh1]))
+            f.write('\n')
+            #
+            content_length = -1
+            if 'content-length' in self.headers:
+                try:
+                    content_length = int(self.headers['content-length'])
+                except ValueError:
+                    f.write('Failed to convert Content-Length header to int: ' + str(
+                        self.headers['content-length']))
+            if content_length == -1:
+                f.write('Content length is unknown! Cannot dump POST data contents!\n')
+            else:
+                bytes_object = b''  # empty bytes array
+                try:
+                    bytes_object = self.rfile.read(content_length)
+                    if type(bytes_object) == bytes:
+                        postdata_str = bytes_object.decode(encoding='utf-8', errors='strict')
+                        f.write(postdata_str)
+                    else:
+                        f.write('Unexpected type of postdata received: {0}\n'.format(
+                            str(type(bytes_object))))
+                except IOError:
+                    f.write('IOError occured while trying to read POST data!\n')
+                except UnicodeDecodeError:
+                    f.write('POST data cannot be represented as string, showing raw bytes:\n')
+                    f.write('<' + str(bytes_object) + '>\n')
+            f.write('--------------------------------------------------\n')
+        #
+        # default reply to skype API server - 201 Created.
+        # This indicates that callback URL was successfully executed
+        self._201_created()
         return True
 
 
