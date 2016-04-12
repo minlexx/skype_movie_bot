@@ -215,7 +215,7 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
         # read config
         success_list = self._cfg.read('conf/bot.conf', encoding='utf-8')
         if 'conf/bot.conf' not in success_list:
-            sys.stderr.write('Failed to read config file: conf/bot.conf!')
+            sys.stderr.write('Failed to read config file: conf/bot.conf!\n')
         # get values from config
         if self._cfg.has_section('server'):
             if 'bind_address' in self._cfg['server']:
