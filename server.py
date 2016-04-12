@@ -214,8 +214,13 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         :return:
         """
         if self.request_method != 'POST':
-            sys.stderr.write('Webhook called not with POST method!')
-            self._404_not_found()
+            sys.stderr.write('Webhook called not with POST method!\n')
+            # self._404_not_found()
+            self.send_response(405)  # Method Not Allowed
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Content-Length', '0')
+            self.send_header('Connection', 'close')
+            self.end_headers()
             return False
         #
         # first of all I want to log all requests
