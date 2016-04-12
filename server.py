@@ -227,7 +227,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         with open('_cache/log_webhook.txt', mode='at', encoding='utf-8') as f:
             f.write('headers:\n')
             for hh1 in self.headers.keys():
-                f.write('{0}: {1}'.format(hh1, self.headers[hh1]))
+                f.write('{0}: {1}\n'.format(hh1, self.headers[hh1]))
             f.write('\n')
             #
             content_length = -1
@@ -246,6 +246,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     if type(bytes_object) == bytes:
                         postdata_str = bytes_object.decode(encoding='utf-8', errors='strict')
                         f.write(postdata_str)
+                        f.write('\n')
                     else:
                         f.write('Unexpected type of postdata received: {0}\n'.format(
                             str(type(bytes_object))))
