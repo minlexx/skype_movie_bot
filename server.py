@@ -58,7 +58,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             '/': self.handle_webroot,
             '/status': self.handle_status,
             '/shutdown': self.handle_shutdown,
-            '/command': self.handle_command
+            '/webhook': self.handle_webhook
         }
 
     # factory method to create template engine and assign default variables to it
@@ -90,9 +90,10 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
     def route_request(self):
         if self.path in self.routes:
             handler_function = self.routes[self.path]
-            print('Found handler, calling', str(handler_function))
+            # print('Found handler, calling', str(handler_function))
             ret = handler_function()
             return ret
+        print('Cannot find handler for url: ' + str(self.path))
         return False
 
     # return False if not static file was requested (guess by file name/ext)
@@ -165,6 +166,13 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(message_enc)
 
+    def _201_created(self):
+        self.content_type = 'application/json; charset=utf-8'
+        self.send_response(201)  # created
+        self.send_header('Content-Type', self.content_type)
+        self.send_header('Content-Length', 0)
+        self.end_headers()
+
     def handle_webroot(self):
         self._301_redirect('/status')
         return True
@@ -172,7 +180,11 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
     def handle_status(self):
         return self.serve_html('status.html')
 
-    def handle_command(self):
+    def handle_webhook(self):
+        if self.request_method != 'POST':
+            sys.stderr.write('Webhook called not with POST method!')
+            self._404_not_found()
+            return False
         return False
 
     def handle_shutdown(self):
