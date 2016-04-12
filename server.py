@@ -117,6 +117,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', self.content_type)
             self.send_header('Content-Length', len(contents))
+            if self.server.user_shutdown_request or self.server.is_shutting_down():
+                self.send_header('Connection', 'close')
             self.end_headers()
             self.wfile.write(contents)
         except IOError:
@@ -166,6 +168,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Location', str(location))
         self.send_header('Content-Type', self.content_type)
         self.send_header('Content-Length', len(message_enc))
+        if self.server.user_shutdown_request or self.server.is_shutting_down():
+            self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(message_enc)
 
@@ -174,6 +178,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(201)  # created
         self.send_header('Content-Type', self.content_type)
         self.send_header('Content-Length', 0)
+        if self.server.user_shutdown_request or self.server.is_shutting_down():
+            self.send_header('Connection', 'close')
         self.end_headers()
 
     def handle_webroot(self):
