@@ -221,7 +221,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', '0')
             self.send_header('Connection', 'close')
             self.end_headers()
-            return False
+            return True
         #
         # first of all I want to log all requests
         with open('_cache/log_webhook.txt', mode='at', encoding='utf-8') as f:
