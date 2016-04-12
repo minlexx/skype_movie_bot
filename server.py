@@ -212,6 +212,8 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
         self.config['SSL_KEY'] = ''
         self.config['TEMPLATE_DIR'] = 'html'
         self.config['TEMPLATE_CACHE_DIR'] = '_cache/html'
+        self.config['APP_ID'] = ''
+        self.config['APP_SECRET'] = ''
         # read config
         success_list = self._cfg.read('conf/bot.conf', encoding='utf-8')
         if 'conf/bot.conf' not in success_list:
@@ -235,6 +237,11 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
                 self.config['TEMPLATE_DIR'] = self._cfg['html']['templates_dir']
             if 'templates_cache_dir' in self._cfg['html']:
                 self.config['TEMPLATE_CACHE_DIR'] = self._cfg['html']['templates_cache_dir']
+        if self._cfg.has_section('app'):
+            if 'app_id' in self._cfg['app']:
+                self.config['APP_ID'] = self._cfg['app']['app_id']
+            if 'app_secret' in self._cfg['app']:
+                self.config['APP_SECRET'] = self._cfg['app']['app_secret']
 
     def is_shutting_down(self):
         return self._is_shutting_down
