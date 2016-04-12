@@ -6,6 +6,7 @@ import ssl
 import http.server
 import threading
 import configparser
+import socketserver
 import datetime
 
 # check 3rd party libraries
@@ -263,7 +264,9 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return True
 
 
-class MovieBotService(http.server.HTTPServer, threading.Thread):
+# First, inherit from ThreadingMixIn, so that its threaded process_request()
+# method overrides default synchronous from HTTPServer (TCPServer)
+class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threading.Thread):
     def __init__(self):
         #
         # first of all, load config
