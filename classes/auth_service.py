@@ -37,10 +37,10 @@ class AuthService:
         dt_unow = datetime.datetime.utcnow()
         if self._valid_until <= dt_unow:
             # time to refresh!
-            print('Time to refresh!')
+            print('AuthService: Time to refresh token!')
             self.do_refresh_token()
         else:
-            print('Token is still valid!')
+            print('AuthService: Token is still valid...')
 
     def do_refresh_token(self):
         try:
@@ -59,14 +59,14 @@ class AuthService:
                 r_json = r.json()
                 self.token = r_json['access_token']
                 #
-                print('Got access token: ' + self.token[0:10] + '...' + self.token[-10:])
+                print('AuthService: Got access token: ' + self.get_token_short())
                 #
                 expires_in = int(r_json['expires_in'])  # usually server gives 3600 seconds
                 tdelta = datetime.timedelta(seconds=expires_in)
                 self._valid_until = datetime.datetime.utcnow() + tdelta
                 #
-                print('Expires in: ' + str(expires_in))
-                print('Valid until: ' + str(self._valid_until))
+                print('AuthService:     Expires in: ' + str(expires_in))
+                print('AuthService:     Valid until: ' + str(self._valid_until))
                 #
                 return True
             return False
