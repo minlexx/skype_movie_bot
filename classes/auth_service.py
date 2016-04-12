@@ -34,6 +34,16 @@ class AuthService:
         return self.token[0:10] + '...' + self.token[-10:]
 
     def maybe_refresh_token(self):
+        #
+        # check that appId has incorrect default value
+        if self._app_id == '11111111-2222-3333-4444-666666666666':
+            # this is a default value from default config
+            # ignore it
+            sys.stderr.write('AuthService: I cannot refresh token with '
+                             'incorrect default app_id!\n')
+            self.token = ''
+            return
+        #
         dt_unow = datetime.datetime.utcnow()
         if self._valid_until <= dt_unow:
             # time to refresh!
