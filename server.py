@@ -7,6 +7,19 @@ import http.server
 import threading
 import configparser
 
+# check 3rd party libraries
+try:
+    import mako
+except ImportError:
+    sys.stderr.write('ImportError: Mako template engine not found!\n')
+    sys.stderr.write('Try the foolowing: pip3 install mako, or equivalent\n')
+
+try:
+    import requests
+except ImportError:
+    sys.stderr.write('ImportError: requests not found!\n')
+    sys.stderr.write('Try the foolowing: pip3 install requests, or equivalent\n')
+
 from classes.template_engine import TemplateEngine
 
 
