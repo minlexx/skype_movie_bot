@@ -10,11 +10,16 @@
 
     State:
     % if server.is_shutting_down():
-    shutting down
+    <span style="color: red">shutting down</span>
     % else:
-    running
+    <span style="color: green">running</span>
     % endif
     <br />
+
+    Microsoft OAuth2 token: ${server.authservice.get_token_short()}<br />
+    Valid until: ${server.authservice.get_valid_until()}<br />
+
+    <a href="/shutdown">Request server shutdown</a>
 
 </body>
 </html>
