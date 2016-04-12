@@ -28,6 +28,11 @@ class AuthService:
     def get_valid_until(self) -> datetime.datetime:
         return self._valid_until
 
+    def get_token_short(self) -> str:
+        if len(self.token) < 25:
+            return self.token
+        return self.token[0:10] + '...' + self.token[-10:]
+
     def maybe_refresh_token(self):
         dt_unow = datetime.datetime.utcnow()
         if self._valid_until <= dt_unow:
