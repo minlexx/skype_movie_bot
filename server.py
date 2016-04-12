@@ -170,32 +170,79 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 class MovieBotService(http.server.HTTPServer, threading.Thread):
-    def __init__(self, server_address, templates_dir, templates_cache_dir):
-        # explicitly initialize both parent classes
-        http.server.HTTPServer.__init__(self, server_address, MovieBotRequestHandler)
+    def __init__(self):
+        #
+        # first of all, load config
+        self._cfg = configparser.ConfigParser()
+        self.config = dict()
+        self.load_config()
+        self._server_address = (self.config['BIND_ADDRESS'], self.config['BIND_PORT'])
+        self._is_shutting_down = False
+        #
+        # Now, explicitly initialize both parent classes
+        http.server.HTTPServer.__init__(self, self._server_address, MovieBotRequestHandler)
         threading.Thread.__init__(self, daemon=False)
+        #
+        # wrap server socket to SSL, if HTTPS was enabled
+        if self.config['USE_HTTPS'] and (self.config['SSL_CERT'] != '') \
+                and (self.config['SSL_KEY'] != ''):
+            self.socket = ssl.wrap_socket(self.socket,
+                                          keyfile=self.config['SSL_KEY'],
+                                          certfile=self.config['SSL_CERT'],
+                                          server_side=True)
         #
         self.server_version = 'MovieBot/1.0'
         self.user_shutdown_request = False
         self.name = 'MovieBotService'
         self.daemon = False
-        self._is_shutting_down = False
-        self.templates_dir = templates_dir
-        self.templates_cache_dir = templates_cache_dir
         #
         if len(self.server_address) == 2:
-            print('{0} listening @ {1}:{2}'.format(
-                self.server_version,
-                self.server_address[0],
-                self.server_address[1]))
+            proto = 'http'
+            if self.config['USE_HTTPS']:
+                proto = 'https'
+            print('{0} listening at {1}://{2}:{3}'.format(
+                self.server_version, proto, self.config['BIND_ADDRESS'], self.config['BIND_PORT']))
+
+    def load_config(self):
+        # fill in the defaults
+        self.config['BIND_ADDRESS'] = '0.0.0.0'
+        self.config['BIND_PORT'] = 8000
+        self.config['USE_HTTPS'] = False
+        self.config['SSL_CERT'] = ''
+        self.config['SSL_KEY'] = ''
+        self.config['TEMPLATE_DIR'] = 'html'
+        self.config['TEMPLATE_CACHE_DIR'] = '_cache/html'
+        # read config
+        success_list = self._cfg.read('conf/bot.conf', encoding='utf-8')
+        if 'conf/bot.conf' not in success_list:
+            sys.stderr.write('Failed to read config file: conf/bot.conf!')
+        # get values from config
+        if self._cfg.has_section('server'):
+            if 'bind_address' in self._cfg['server']:
+                self.config['BIND_ADDRESS'] = str(self._cfg['server']['bind_address'])
+            if 'bind_port' in self._cfg['server']:
+                self.config['BIND_PORT'] = int(self._cfg['server']['bind_port'])
+            if 'https' in self._cfg['server']:
+                iuse_https = int(self._cfg['server']['https'])
+                if iuse_https != 0:
+                    self.config['USE_HTTPS'] = True
+            if 'ssl_cert' in self._cfg['server']:
+                self.config['SSL_CERT'] = str(self._cfg['server']['ssl_cert'])
+            if 'ssl_key' in self._cfg['server']:
+                self.config['SSL_KEY'] = str(self._cfg['server']['ssl_key'])
+        if self._cfg.has_section('html'):
+            if 'templates_dir' in self._cfg['html']:
+                self.config['TEMPLATE_DIR'] = self._cfg['html']['templates_dir']
+            if 'templates_cache_dir' in self._cfg['html']:
+                self.config['TEMPLATE_CACHE_DIR'] = self._cfg['html']['templates_cache_dir']
 
     def is_shutting_down(self):
         return self._is_shutting_down
 
     def get_template_engine_config(self) -> dict:
         ret = {
-            'TEMPLATE_DIR': self.templates_dir,
-            'TEMPLATE_CACHE_DIR': self.templates_cache_dir,
+            'TEMPLATE_DIR': self.config['TEMPLATE_DIR'],
+            'TEMPLATE_CACHE_DIR': self.config['TEMPLATE_CACHE_DIR'],
         }
         return ret
 
@@ -212,47 +259,7 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
 
 
 if __name__ == '__main__':
-    #
-    # defaults
-    #
-    use_https = False
-    bind_address = '0.0.0.0'
-    bind_port = 8000
-    ssl_cert = ''
-    ssl_key = ''
-    templates_dir = 'html'
-    templates_cache_dir = 'html/cache'
-    #
-    # read config
-    #
-    cfg = configparser.ConfigParser()
-    cfg.read('conf/bot.conf', encoding='utf-8')
-    if cfg.has_section('server'):
-        if 'bind_address' in cfg['server']:
-            bind_address = str(cfg['server']['bind_address'])
-        if 'bind_port' in cfg['server']:
-            bind_port = int(cfg['server']['bind_port'])
-        if 'https' in cfg['server']:
-            iuse_https = int(cfg['server']['https'])
-            if iuse_https != 0:
-                use_https = True
-        if 'ssl_cert' in cfg['server']:
-            ssl_cert = str(cfg['server']['ssl_cert'])
-        if 'ssl_key' in cfg['server']:
-            ssl_key = str(cfg['server']['ssl_key'])
-    if cfg.has_section('html'):
-        if 'templates_dir' in cfg['html']:
-            templates_dir = cfg['html']['templates_dir']
-        if 'templates_cache_dir' in cfg['html']:
-            templates_cache_dir = cfg['html']['templates_cache_dir']
-    #
-    # create server object
-    my_server_address = (bind_address, bind_port)
-    srv = MovieBotService(my_server_address, templates_dir, templates_cache_dir)
-
-    # wrap server socket to SSL, if HTTPS was enabled
-    if use_https and (ssl_cert != '') and (ssl_key != ''):
-        srv.socket = ssl.wrap_socket(srv.socket, keyfile=ssl_key, certfile=ssl_cert, server_side=True)
+    srv = MovieBotService()
 
     # start BG thread
     srv.start()
