@@ -6,6 +6,7 @@ import ssl
 import http.server
 import threading
 import configparser
+import datetime
 
 # check 3rd party libraries
 try:
@@ -21,6 +22,7 @@ except ImportError:
     sys.stderr.write('Try the foolowing: pip3 install requests, or equivalent\n')
 
 from classes.template_engine import TemplateEngine
+from classes.auth_service import AuthService
 
 
 # HTTP Request handler. New object is created for each new request
@@ -215,6 +217,8 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
                 proto = 'https'
             print('{0} listening at {1}://{2}:{3}'.format(
                 self.server_version, proto, self.config['BIND_ADDRESS'], self.config['BIND_PORT']))
+        #
+        self.authservice = AuthService(self.config)
 
     def load_config(self):
         # fill in the defaults
@@ -269,8 +273,14 @@ class MovieBotService(http.server.HTTPServer, threading.Thread):
     # background thread function
     def run(self):
         print('BG Thread started')
+        print('BG Thread: authorize to Microsoft services...')
+        self.authservice.get_token()
+        #
+        # wait..
         while not self.user_shutdown_request:
             time.sleep(1)
+        #
+        # we've received shutdown request, so we must stop HTTP server now
         print('BG Thread: shutting down http server')
         self._is_shutting_down = True
         self.shutdown()
