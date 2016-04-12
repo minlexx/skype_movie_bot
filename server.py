@@ -137,6 +137,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', self.content_type)
         self.send_header('Content-Length', len(html_enc))
+        if self.server.user_shutdown_request or self.server.is_shutting_down():
+            self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(html_enc)
         return True
