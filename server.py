@@ -25,6 +25,13 @@ except ImportError:
 
 from classes.template_engine import TemplateEngine
 from classes.auth_service import AuthService
+from classes import utils
+
+
+ACTIVITY_MESSAGE = 'message'
+ACTIVITY_ATTACHMENT = 'attachment'
+ACTIVITY_CONTACTRELATIONUPDATE = 'contactRelationUpdate'
+ACTIVITY_CONVERSATIONUPDATE = 'conversationUpdate'
 
 
 # HTTP Request handler. New object is created for each new request
@@ -295,9 +302,12 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     if 'to' in event_dict:
                         a_to = event_dict['to']
                     if 'time' in event_dict:
-                        a_time = event_dict['time']
+                        a_time = utils.parse_skype_datetime(event_dict['time'])
                     if 'activity' in event_dict:
                         a_activity = event_dict['activity']
+                    # output to console!
+                    print('{0}: activity={1}, from:{2} => to:{3}\n'.format(
+                        a_time, a_activity, a_from, a_to))
                     pass
             else:
                 # unexpected type for a json object received! it should be a list (JSON Array)
