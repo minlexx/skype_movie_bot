@@ -238,6 +238,34 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return True
         #
+        # also we should check peer certificate here
+        # it should be issued to skype.com :)
+        if self.server.config['USE_HTTPS']:
+            # self.request should be instance of ssl.SSLSocket
+            if isinstance(self.request, ssl.SSLSocket):
+                cert = self.request.getpeercert()
+                if cert is None:  # no certificate was provided
+                    sys.stderr.write('Webhook access without a certificate! Deny!\n')
+                    self.send_response(403)  # 403 Forbidden
+                    self.send_header('Content-Type', 'application/json; charset=utf-8')
+                    self.send_header('Content-Length', '0')
+                    self.send_header('Connection', 'close')
+                    self.end_headers()
+                    return True
+                if type(cert) == dict:
+                    # If the certificate was not validated, the dict is empty
+                    if len(cert) == 0:
+                        sys.stderr.write('Webhook access with an invalid certificate! Deny!\n')
+                        self.send_response(403)  # 403 Forbidden
+                        self.send_header('Content-Type', 'application/json; charset=utf-8')
+                        self.send_header('Content-Length', '0')
+                        self.send_header('Connection', 'close')
+                        self.end_headers()
+                        return True
+                print(cert)  # lol
+            else:
+                sys.stderr.write('Something is strange, self.rwquest is not an SSL Socket?!\n')
+        #
         postdata_str = ''
         json_object = None
         #
