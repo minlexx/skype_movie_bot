@@ -348,7 +348,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     # output to console!
                     print('{0}: activity={1}, from:{2} => to:{3}\n'.format(
                         a_time, a_activity, a_from, a_to))
-                    pass
+                    if a_activity == ACTIVITY_MESSAGE:
+                        self.server.skype_send_message(a_from, 'Well, hello there!')
             else:
                 # unexpected type for a json object received! it should be a list (JSON Array)
                 sys.stderr.write('Unexpected type on JSON object was received: ' +
@@ -476,6 +477,26 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.shutdown()
         print('BG Thread: ending')
         return
+
+    def skype_send_message(self, to: str, message: str):
+        token = self.authservice.get_token()
+        if token == '':
+            sys.stderr.write('MovieBotService: cannot send message without OAuth2 token!\n')
+            return False
+        api_host = 'apis.skype.com'
+        url = 'http://{0}/v2/conversations/{1}/activities'.format(api_host, to)
+        postdata = {
+            'message': {
+                'content': message
+            }
+        }
+        postdata_e = json.dumps(postdata)
+        r = requests.post(url, data=postdata_e, headers={'Authorization': 'Bearer ' + token})
+
+        print()
+        print('status code:', r.status_code)
+        print('encoding:', r.encoding)
+        return True
 
 
 if __name__ == '__main__':
