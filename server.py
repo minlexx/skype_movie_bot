@@ -8,6 +8,7 @@ import threading
 import configparser
 import socketserver
 import datetime
+import json
 
 # check 3rd party libraries
 try:
@@ -224,6 +225,9 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             return True
         #
+        postdata_str = ''
+        json_object = None
+        #
         # first of all I want to log all requests
         with open('_cache/log_webhook.txt', mode='at', encoding='utf-8') as f:
             f.write('headers:\n')
@@ -246,7 +250,20 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     bytes_object = self.rfile.read(content_length)
                     if type(bytes_object) == bytes:
                         postdata_str = bytes_object.decode(encoding='utf-8', errors='strict')
-                        f.write(postdata_str)
+                        # try to parse JSON here
+                        try:
+                            json_object = json.loads(postdata_str, encoding='utf-8')
+                        except json.JSONDecodeError as jde:
+                            sys.stderr.write('Failed to decode JSON in POST data:\n')
+                            sys.stderr.write(str(jde) + '\n')
+                            json_object = None
+                        # finally log what skype server has sent us
+                        # if it is not JSON, log simple string
+                        if json_object is None:
+                            f.write(postdata_str)
+                        else:
+                            # if this is JSON, pretty print formatted JSON to log
+                            f.write(json.dumps(json_object, sort_keys=True, indent=4) + '\n')
                         f.write('\n')
                     else:
                         f.write('Unexpected type of postdata received: {0}\n'.format(
@@ -257,6 +274,35 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     f.write('POST data cannot be represented as string, showing raw bytes:\n')
                     f.write('<' + str(bytes_object) + '>\n')
             f.write('--------------------------------------------------\n')
+        #
+        # after loggigng, process the request
+        if (postdata_str != '') and (json_object is not None):
+            # All webhooks are called with JSON - formatted bodies (array
+            # or JSON objects). Every JSON object indicates some update
+            # and has the set of common fields.
+            # Convert possible sinle object to a list of objects
+            if type(json_object) == dict:
+                json_object = [json_object]
+            if type(json_object) == list:
+                for event_dict in json_object:
+                    # common attributes for all events: from, to, time, activity
+                    a_from = ''
+                    a_to = ''
+                    a_time = ''
+                    a_activity = ''
+                    if 'from' in event_dict:
+                        a_from = event_dict['from']
+                    if 'to' in event_dict:
+                        a_to = event_dict['to']
+                    if 'time' in event_dict:
+                        a_time = event_dict['time']
+                    if 'activity' in event_dict:
+                        a_activity = event_dict['activity']
+                    pass
+            else:
+                # unexpected type for a json object received! it should be a list (JSON Array)
+                sys.stderr.write('Unexpected type on JSON object was received: ' +
+                                 str(type(json_object)))
         #
         # default reply to skype API server - 201 Created.
         # This indicates that callback URL was successfully executed
