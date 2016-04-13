@@ -23,6 +23,12 @@ except ImportError:
     sys.stderr.write('ImportError: requests not found!\n')
     sys.stderr.write('Try the foolowing: pip3 install requests, or equivalent\n')
 
+try:
+    import certifi
+except ImportError:
+    sys.stderr.write('ImportError: certifi not found!\n')
+    sys.stderr.write('Try the foolowing: pip3 install certifi, or equivalent\n')
+
 from classes.template_engine import TemplateEngine
 from classes.auth_service import AuthService
 from classes import utils
@@ -240,7 +246,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         #
         # also we should check peer certificate here
         # it should be issued to skype.com :)
-        if self.server.config['USE_HTTPS']:
+        if self.server.config['VALIDATE_PEER_CERT']:
             # self.request should be instance of ssl.SSLSocket
             if isinstance(self.request, ssl.SSLSocket):
                 cert = self.request.getpeercert()
@@ -373,9 +379,16 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         # wrap server socket to SSL, if HTTPS was enabled
         if self.config['USE_HTTPS'] and (self.config['SSL_CERT'] != '') \
                 and (self.config['SSL_KEY'] != ''):
+            cert_requirement = ssl.CERT_NONE  # do not require cert from peer
+            ca_certificates = None            # no CA certs
+            if self.config['VALIDATE_PEER_CERT']:
+                cert_requirement = ssl.CERT_REQUIRED  # require cert from peer
+                ca_certificates = certifi.where()     # look for CA certs here
             self.socket = ssl.wrap_socket(self.socket,
                                           keyfile=self.config['SSL_KEY'],
                                           certfile=self.config['SSL_CERT'],
+                                          cert_reqs=cert_requirement,  # require cert from peer or not
+                                          ca_certs=ca_certificates,    # where to look for CA certs
                                           server_side=True)
         #
         self.server_version = 'MovieBot/1.0'
@@ -399,6 +412,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.config['USE_HTTPS'] = False
         self.config['SSL_CERT'] = ''
         self.config['SSL_KEY'] = ''
+        self.config['VALIDATE_PEER_CERT'] = False
         self.config['TEMPLATE_DIR'] = 'html'
         self.config['TEMPLATE_CACHE_DIR'] = '_cache/html'
         self.config['APP_ID'] = ''
@@ -421,6 +435,10 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
                 self.config['SSL_CERT'] = str(self._cfg['server']['ssl_cert'])
             if 'ssl_key' in self._cfg['server']:
                 self.config['SSL_KEY'] = str(self._cfg['server']['ssl_key'])
+            if 'validate_peer_cert' in self._cfg['server']:
+                ivalidate_peer_cert = int(self._cfg['server']['validate_peer_cert'])
+                if ivalidate_peer_cert != 0:
+                    self.config['VALIDATE_PEER_CERT'] = True
         if self._cfg.has_section('html'):
             if 'templates_dir' in self._cfg['html']:
                 self.config['TEMPLATE_DIR'] = self._cfg['html']['templates_dir']
