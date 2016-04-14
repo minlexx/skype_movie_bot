@@ -204,6 +204,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return self.serve_html('status.html')
 
     def handle_shutdown(self):
+        print('Shutdown request handled.\n')
         message = 'Bot will be shut down!'
         self.server.user_shutdown_request = True
         self._301_redirect('/status', content=message)
