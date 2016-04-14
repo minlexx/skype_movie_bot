@@ -1,5 +1,7 @@
 import sys
 import json
+import datetime
+import re
 
 import requests
 
@@ -22,6 +24,12 @@ class SkypeApi:
         self.chatrooms = []
         self._savedata_fn = '_cache/skype_savedata.json'
         self.load_savedata()
+        # internal vars to handle events
+        self._evt_from = ''
+        self._evt_to = ''
+        self._evt_time = datetime.datetime.utcnow()
+        self._evt_activity = ''
+        self._evt_dict = {}
 
     def save_data(self):
         with open(self._savedata_fn, mode='wt', encoding='utf-8') as f:
@@ -49,25 +57,104 @@ class SkypeApi:
     def get_my_skype_full_bot_id(self):
         return '28:' + self.config['BOT_ID']
 
+    def is_skypeid_user(self, s: str):
+        return s.startswith('8:')
+
+    def is_skypeid_conversation(self, s: str):
+        return s.startswith('19:') and s.endswith('@thread.skype')
+
+    def is_skypeid_me(self, s: str):
+        return s == self.get_my_skype_full_bot_id()
+
+    def strip_skypeid(self, s: str):
+        m = re.match(r'\d+:(.+)', s)
+        if m is not None:
+            return m.group(1)
+        return s
+
     def handle_webhook_event(self, event_dict: dict):
         # common attributes for all events: from, to, time, activity
-        a_from = ''
-        a_to = ''
-        a_time = ''
-        a_activity = ''
+        self._evt_dict = event_dict
         if 'from' in event_dict:
-            a_from = event_dict['from']
+            self._evt_from = event_dict['from']
         if 'to' in event_dict:
-            a_to = event_dict['to']
+            self._evt_to = event_dict['to']
         if 'time' in event_dict:
-            a_time = utils.parse_skype_datetime(event_dict['time'])
+            self._evt_time = utils.parse_skype_datetime(event_dict['time'])
         if 'activity' in event_dict:
-            a_activity = event_dict['activity']
+            self._evt_activity = event_dict['activity']
         # output to console!
         print('{0}: activity={1}, from:{2} => to:{3}'.format(
-            a_time, a_activity, a_from, a_to))
-        if a_activity == self.ACTIVITY_MESSAGE:
-            self.send_message(a_from, 'Well, hello there!')
+            self._evt_time, self._evt_activity, self._evt_from, self._evt_to))
+        # run appropriate handler for each event type
+        if self._evt_activity == self.ACTIVITY_MESSAGE:
+            self.handle_message()
+        elif self._evt_activity == self.ACTIVITY_ATTACHMENT:
+            self.handle_attachment()
+        elif self._evt_activity == self.ACTIVITY_CONTACTRELATIONUPDATE:
+            self.handle_contactRelationUpdate()
+        elif self._evt_activity == self.ACTIVITY_CONVERSATIONUPDATE:
+            self.handle_conversationUpdate()
+        else:
+            sys.stderr.write('SkypeAPI: unhandled activity event received: '
+                             '[{0}]\n'.format(self._evt_activity))
+
+    def handle_message(self):
+        """
+        "activity": "message",
+        "content": "\u0442\u0430\u043a, ...",
+        "from": "8:alexey.min",
+        "id": "1460608477678",
+        "time": "2016-04-14T04:34:37.672Z",
+        "to": "19:fced243ae1de407a8cfaff338c8f03fd@thread.skype"
+        """
+        message = ''
+        message_id = ''
+        if 'content' in self._evt_dict:
+            message = self._evt_dict['content']
+        if 'id' in self._evt_dict:
+            message_id = self._evt_dict['id']
+        #
+        # direct user-to-me conversation
+        if self.is_skypeid_user(self._evt_from) and self.is_skypeid_me(self._evt_to):
+            self.send_message(self._evt_from,
+                              'Чего надо, {0}? Я пока не общаюсь '
+                              'в личке...'.format(self.strip_skypeid(self._evt_from)))
+        #
+        # user-to-groupchat conversation
+        if self.is_skypeid_user(self._evt_from) and self.is_skypeid_conversation(self._evt_to):
+            # I can handle some commands here
+            if message == '!help':
+                help_message = 'Я пока что умею только одну команду:\n !help - справка :)'
+                self.send_message(self._evt_to, help_message)
+
+    def handle_contactRelationUpdate(self):
+        """
+        "action": "add",  // (may be "remove")
+        "activity": "contactRelationUpdate",
+        "from": "8:alexey.min",
+        "fromDisplayName": "Alexey Min",
+        "time": "2016-04-13T10:08:04.939Z",
+        "to": "28:980d8ae3-6300-4c1f-b021-4c50b35b0c6a"
+        """
+        pass
+
+    def handle_conversationUpdate(self):
+        """
+        Example, user added me (bot) to a skype chat
+        "activity": "conversationUpdate",
+        "from": "8:alexey.min",
+        "membersAdded": [
+            "28:980d8ae3-6300-4c1f-b021-4c50b35b0c6a"
+        ],
+        "time": "2016-04-14T04:32:18.464Z",
+        "to": "19:fced243ae1de407a8cfaff338c8f03fd@thread.skype"
+        """
+        pass
+
+    def handle_attachment(self):
+        # we do not handle an attachment in any way
+        pass
 
     def send_message(self, to: str, message: str):
         self.token = self.authservice.get_token()
