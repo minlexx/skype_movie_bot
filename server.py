@@ -78,6 +78,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
                 proto = 'https'
             print('{0} listening at {1}://{2}:{3}'.format(
                 self.server_version, proto, self.config['BIND_ADDRESS'], self.config['BIND_PORT']))
+            print('  My Bot ID: {0}'.format(self.get_my_skype_full_bot_id()))
         #
         self.authservice = AuthService(self.config)
 
@@ -93,6 +94,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.config['TEMPLATE_CACHE_DIR'] = '_cache/html'
         self.config['APP_ID'] = ''
         self.config['APP_SECRET'] = ''
+        self.config['BOT_ID'] = ''
         # read config
         success_list = self._cfg.read('conf/bot.conf', encoding='utf-8')
         if 'conf/bot.conf' not in success_list:
@@ -125,6 +127,8 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
                 self.config['APP_ID'] = self._cfg['app']['app_id']
             if 'app_secret' in self._cfg['app']:
                 self.config['APP_SECRET'] = self._cfg['app']['app_secret']
+            if 'bot_id' in self._cfg['app']:
+                self.config['BOT_ID'] = self._cfg['app']['bot_id']
 
     def is_shutting_down(self):
         return self._is_shutting_down
@@ -135,6 +139,9 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
             'TEMPLATE_CACHE_DIR': self.config['TEMPLATE_CACHE_DIR'],
         }
         return ret
+
+    def get_my_skype_full_bot_id(self):
+        return '28:' + self.config['BOT_ID']
 
     # background thread function
     def run(self):
@@ -160,7 +167,6 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
             return False
         api_host = 'apis.skype.com'
         url = 'https://{0}/v2/conversations/{1}/activities'.format(api_host, to)
-        print('POST URL = [{0}]\n'.format(url))
         postdata = {
             'message': {
                 'content': message
@@ -168,10 +174,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         }
         postdata_e = json.dumps(postdata)
         r = requests.post(url, data=postdata_e, headers={'Authorization': 'Bearer ' + token})
-
-        print()
-        print('status code:', r.status_code)
-        print('encoding:', r.encoding)
+        print('API response status code:', r.status_code)
         return True
 
 
