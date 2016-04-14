@@ -205,8 +205,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def handle_shutdown(self):
         message = 'Bot will be shut down!'
-        self._301_redirect('/status', content=message)
         self.server.user_shutdown_request = True
+        self._301_redirect('/status', content=message)
         return True
 
     def handle_webhook_chat(self):
@@ -395,7 +395,11 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.server_version = 'MovieBot/1.0'
         self.user_shutdown_request = False
         self.name = 'MovieBotService'
-        self.daemon = False
+        self.daemon = False  # self's run() method is not daemon
+        # ThreadingMixIn's request handler threads - daemons
+        # we do not want child threads with HTTP/1.1 keep-alive connections
+        # to prevent server from stopping
+        self.daemon_threads = True
         #
         if len(self.server_address) == 2:
             proto = 'http'
@@ -484,7 +488,8 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
             sys.stderr.write('MovieBotService: cannot send message without OAuth2 token!\n')
             return False
         api_host = 'apis.skype.com'
-        url = 'http://{0}/v2/conversations/{1}/activities'.format(api_host, to)
+        url = 'https://{0}/v2/conversations/{1}/activities'.format(api_host, to)
+        print('POST URL = [{0}]\n'.format(url))
         postdata = {
             'message': {
                 'content': message
