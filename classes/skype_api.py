@@ -41,15 +41,18 @@ class SkypeApi:
             print('SkypeAPI: saved savedata')
 
     def load_savedata(self):
-        with open(self._savedata_fn, mode='rt', encoding='utf-8') as f:
-            s = f.read()
-            json_obj = json.loads(s, encoding='utf-8')
-            if type(json_obj) == dict:
-                self.contact_list = json_obj['contacts']
-                self.chatrooms = json_obj['chats']
-                print('SkypeAPI: loaded savedata OK')
-            else:
-                sys.stderr.write('SkypeAPI: error reading savedata!\n')
+        try:
+            with open(self._savedata_fn, mode='rt', encoding='utf-8') as f:
+                s = f.read()
+                json_obj = json.loads(s, encoding='utf-8')
+                if type(json_obj) == dict:
+                    self.contact_list = json_obj['contacts']
+                    self.chatrooms = json_obj['chats']
+                    print('SkypeAPI: loaded savedata OK')
+                else:
+                    sys.stderr.write('SkypeAPI: error reading savedata!\n')
+        except OSError:
+            pass
 
     def refresh_token(self):
         self.token = self.authservice.get_token()
