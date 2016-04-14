@@ -4,13 +4,6 @@ import ssl
 import json
 
 from classes.template_engine import TemplateEngine
-from classes import utils
-
-
-ACTIVITY_MESSAGE = 'message'
-ACTIVITY_ATTACHMENT = 'attachment'
-ACTIVITY_CONTACTRELATIONUPDATE = 'contactRelationUpdate'
-ACTIVITY_CONVERSATIONUPDATE = 'conversationUpdate'
 
 
 # HTTP Request handler. New object is created for each new request
@@ -303,24 +296,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                 json_object = [json_object]
             if type(json_object) == list:
                 for event_dict in json_object:
-                    # common attributes for all events: from, to, time, activity
-                    a_from = ''
-                    a_to = ''
-                    a_time = ''
-                    a_activity = ''
-                    if 'from' in event_dict:
-                        a_from = event_dict['from']
-                    if 'to' in event_dict:
-                        a_to = event_dict['to']
-                    if 'time' in event_dict:
-                        a_time = utils.parse_skype_datetime(event_dict['time'])
-                    if 'activity' in event_dict:
-                        a_activity = event_dict['activity']
-                    # output to console!
-                    print('{0}: activity={1}, from:{2} => to:{3}'.format(
-                        a_time, a_activity, a_from, a_to))
-                    if a_activity == ACTIVITY_MESSAGE:
-                        self.server.skype.send_message(a_from, 'Well, hello there!')
+                    self.server.skype.handle_webhook_event(event_dict)
             else:
                 # unexpected type for a json object received! it should be a list (JSON Array)
                 sys.stderr.write('Unexpected type on JSON object was received: ' +
