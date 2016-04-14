@@ -72,7 +72,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         self.routes = {
             '/': self.handle_webroot,
             '/status': self.handle_status,
-            '/shutdown': self.handle_shutdown,
+            '/request_shutdown': self.handle_shutdown,
             '/webhook_chat': self.handle_webhook_chat
         }
 
@@ -205,9 +205,8 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def handle_shutdown(self):
         print('Shutdown request handled.\n')
-        message = 'Bot will be shut down!'
         self.server.user_shutdown_request = True
-        self._301_redirect('/status', content=message)
+        self.serve_html('shutdown.html')
         return True
 
     def handle_webhook_chat(self):
