@@ -3,16 +3,20 @@ import json
 
 import requests
 
+from classes.auth_service import AuthService
+
 
 class SkypeApi:
-    def __init__(self):
+    def __init__(self, config: dict):
+        self.config = config
         self.token = ''
+        self.authservice = AuthService(config)
 
-    def set_token(self, t: str):
-        self.token = t
+    def refresh_token(self):
+        self.token = self.authservice.get_token()
 
-    def skype_send_message(self, to: str, message: str):
-        # token = self.authservice.get_token()
+    def send_message(self, to: str, message: str):
+        self.token = self.authservice.get_token()
         if self.token == '':
             sys.stderr.write('MovieBotService: cannot send message without OAuth2 token!\n')
             return False

@@ -320,7 +320,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     print('{0}: activity={1}, from:{2} => to:{3}'.format(
                         a_time, a_activity, a_from, a_to))
                     if a_activity == ACTIVITY_MESSAGE:
-                        self.server.skype_send_message(a_from, 'Well, hello there!')
+                        self.server.skype.send_message(a_from, 'Well, hello there!')
             else:
                 # unexpected type for a json object received! it should be a list (JSON Array)
                 sys.stderr.write('Unexpected type on JSON object was received: ' +

@@ -6,7 +6,6 @@ import http.server
 import threading
 import configparser
 import socketserver
-import json
 
 # check if all 3rd party libraries are installed
 try:
@@ -28,7 +27,7 @@ except ImportError:
     sys.stderr.write('Try the foolowing: pip3 install certifi, or equivalent\n')
 
 
-from classes.auth_service import AuthService
+from classes.skype_api import SkypeApi
 from classes.request_handler import MovieBotRequestHandler
 
 
@@ -80,7 +79,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
                 self.server_version, proto, self.config['BIND_ADDRESS'], self.config['BIND_PORT']))
             print('  My Bot ID: {0}'.format(self.get_my_skype_full_bot_id()))
         #
-        self.authservice = AuthService(self.config)
+        self.skype = SkypeApi(self.config)
 
     def load_config(self):
         # fill in the defaults
@@ -147,7 +146,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
     def run(self):
         print('BG Thread started')
         print('BG Thread: authorize to Microsoft services...')
-        self.authservice.get_token()
+        self.skype.refresh_token()
         #
         # wait..
         while not self.user_shutdown_request:
@@ -159,23 +158,6 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.shutdown()
         print('BG Thread: ending')
         return
-
-    def skype_send_message(self, to: str, message: str):
-        token = self.authservice.get_token()
-        if token == '':
-            sys.stderr.write('MovieBotService: cannot send message without OAuth2 token!\n')
-            return False
-        api_host = 'apis.skype.com'
-        url = 'https://{0}/v2/conversations/{1}/activities'.format(api_host, to)
-        postdata = {
-            'message': {
-                'content': message
-            }
-        }
-        postdata_e = json.dumps(postdata)
-        r = requests.post(url, data=postdata_e, headers={'Authorization': 'Bearer ' + token})
-        print('API response status code:', r.status_code)
-        return True
 
 
 if __name__ == '__main__':
