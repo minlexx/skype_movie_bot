@@ -177,7 +177,6 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
         return self.serve_html('status.html')
 
     def handle_shutdown(self):
-        print('Shutdown request handled.\n')
         self.server.user_shutdown_request = True
         self.serve_html('shutdown.html')
         return True
@@ -318,7 +317,7 @@ class MovieBotRequestHandler(http.server.BaseHTTPRequestHandler):
                     if 'activity' in event_dict:
                         a_activity = event_dict['activity']
                     # output to console!
-                    print('{0}: activity={1}, from:{2} => to:{3}\n'.format(
+                    print('{0}: activity={1}, from:{2} => to:{3}'.format(
                         a_time, a_activity, a_from, a_to))
                     if a_activity == ACTIVITY_MESSAGE:
                         self.server.skype_send_message(a_from, 'Well, hello there!')
