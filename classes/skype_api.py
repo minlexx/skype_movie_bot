@@ -70,12 +70,22 @@ class SkypeApi:
         return s == self.get_my_skype_full_bot_id()
 
     def strip_skypeid(self, s: str):
+        """
+        Converts "8:alexey.min" to "alexey.min"
+        :param s: full skype ID as received in API callback
+        :return: stripped skype ID without "numbers:" in front
+        """
         m = re.match(r'\d+:(.+)', s)
         if m is not None:
             return m.group(1)
         return s
 
     def handle_webhook_event(self, event_dict: dict):
+        """
+        Main entry point that receives all skype even callbacks
+        :param event_dict: json objct that was received in POST request from MS server
+        :return: nothing
+        """
         # common attributes for all events: from, to, time, activity
         self._evt_dict = event_dict
         if 'from' in event_dict:
