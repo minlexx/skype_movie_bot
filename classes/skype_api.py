@@ -32,13 +32,16 @@ class SkypeApi:
         self._evt_dict = {}
 
     def save_data(self):
-        with open(self._savedata_fn, mode='wt', encoding='utf-8') as f:
-            json_obj = {
-                'contacts': self.contact_list,
-                'chats': self.chatrooms
-            }
-            f.write(json.dumps(json_obj, sort_keys=True, indent=4))
-            print('SkypeAPI: saved savedata')
+        try:
+            with open(self._savedata_fn, mode='wt', encoding='utf-8') as f:
+                json_obj = {
+                    'contacts': self.contact_list,
+                    'chats': self.chatrooms
+                }
+                f.write(json.dumps(json_obj, sort_keys=True, indent=4))
+                print('SkypeAPI: saved savedata')
+        except OSError:
+            pass
 
     def load_savedata(self):
         try:
@@ -150,6 +153,17 @@ class SkypeApi:
         "time": "2016-04-13T10:08:04.939Z",
         "to": "28:980d8ae3-6300-4c1f-b021-4c50b35b0c6a"
         """
+        action = ''
+        from_display_name = ''
+        if 'action' in self._evt_dict:
+            action = self._evt_dict['action']
+        if 'fromDisplayName' in self._evt_dict:
+            from_display_name = self._evt_dict['fromDisplayName']
+        if action == 'add':
+            # yay! we've been added as a contact!
+            cskypeid = self.strip_skypeid(self._evt_from)
+            contact = {'skypeid': cskypeid, 'displayname': from_display_name}
+            # self.contact_list['skypeid'] = contact
         pass
 
     def handle_conversationUpdate(self):
