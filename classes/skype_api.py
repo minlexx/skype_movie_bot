@@ -21,6 +21,8 @@ class SkypeApi:
         self.token = ''
         self.authservice = AuthService(config)
         self.contact_list = {}
+        # ^^ format: key: skype_id
+        #  self.contact_list['alexey.min'] = {'skypeid': 'alexey.min', 'displayname': 'Alexey Min'}
         self.chatrooms = []
         self._savedata_fn = '_cache/skype_savedata.json'
         self.load_savedata()
@@ -165,6 +167,11 @@ class SkypeApi:
             contact = {'skypeid': cskypeid, 'displayname': from_display_name}
             self.contact_list[cskypeid] = contact
             self.save_data()
+        elif action == 'remove':
+            cskypeid = self.strip_skypeid(self._evt_from)
+            if cskypeid in self.contact_list:
+                del self.contact_list[cskypeid]
+                self.save_data()
 
     def handle_conversationUpdate(self):
         """
