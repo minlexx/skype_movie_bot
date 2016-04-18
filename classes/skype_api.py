@@ -2,6 +2,7 @@ import sys
 import json
 import datetime
 import re
+import threading
 
 import requests
 
@@ -32,6 +33,9 @@ class SkypeApi:
         self._evt_time = datetime.datetime.utcnow()
         self._evt_activity = ''
         self._evt_dict = {}
+        #
+        # lock to guard message sending
+        self._msg_lock = threading.Lock()
 
     def save_data(self):
         try:
@@ -242,6 +246,15 @@ class SkypeApi:
             }
         }
         postdata_e = json.dumps(postdata)
-        r = requests.post(url, data=postdata_e, headers={'Authorization': 'Bearer ' + self.token})
-        print('API response status code:', r.status_code)
+
+        # enter the lock
+        self._msg_lock.acquire()
+        try:
+            r = requests.post(url, data=postdata_e, headers={'Authorization': 'Bearer ' + self.token})
+            if r.status_code != 201:
+                sys.stderr.write('ERROR: API response status code:\n'.format(r.status_code))
+        finally:
+            # release the lock
+            self._msg_lock.release()
+
         return True
