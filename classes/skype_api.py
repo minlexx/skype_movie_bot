@@ -177,8 +177,11 @@ class SkypeApi:
             contact = {'skypeid': cskypeid, 'displayname': from_display_name}
             self.contact_list[cskypeid] = contact
             self.save_data()
+            print('Yay! {0} ({1}) added me as contact!'.format(
+                from_display_name, cskypeid))
         elif action == 'remove':
             cskypeid = self.strip_skypeid(self._evt_from)
+            print('=( {0} removed me from contacts :('.format(cskypeid))
             if cskypeid in self.contact_list:
                 del self.contact_list[cskypeid]
                 self.save_data()
@@ -194,7 +197,30 @@ class SkypeApi:
         "time": "2016-04-14T04:32:18.464Z",
         "to": "19:fced243ae1de407a8cfaff338c8f03fd@thread.skype"
         """
-        pass
+        members_added = []
+        members_removed = []
+        my_bot_skypeid = self.get_my_skype_full_bot_id()
+        room_skypeid = self._evt_to
+        #
+        if 'membersAdded' in self._evt_dict:
+            members_added = self._evt_dict['membersAdded']
+            if type(members_added) == list:
+                if my_bot_skypeid in members_added:
+                    # bot was added to a skype conference
+                    if room_skypeid not in self.chatrooms:
+                        print('I was added to a conversation [{0}] :)'.format(room_skypeid))
+                        self.chatrooms.append(room_skypeid)
+                        self.save_data()
+        #
+        if 'membersRemoved' in self._evt_dict:
+            members_removed = self._evt_dict['membersRemoved']
+            if type(members_removed) == list:
+                if my_bot_skypeid in members_removed:
+                    # bot was removed from a skype conference
+                    if room_skypeid in self.chatrooms:
+                        print('I was removed from conversation [{0}] :('.format(room_skypeid))
+                        self.chatrooms.remove(room_skypeid)
+                        self.save_data()
 
     def handle_attachment(self):
         # we do not handle an attachment in any way
