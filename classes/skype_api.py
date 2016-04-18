@@ -217,6 +217,9 @@ class SkypeApi:
             if type(members_removed) == list:
                 if my_bot_skypeid in members_removed:
                     # bot was removed from a skype conference
+                    # for some reason, this is never received for now.
+                    # so we can never know if we were removed from a chatroom
+                    # but maybe in future...
                     if room_skypeid in self.chatrooms:
                         print('I was removed from conversation [{0}] :('.format(room_skypeid))
                         self.chatrooms.remove(room_skypeid)
