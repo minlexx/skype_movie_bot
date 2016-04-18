@@ -85,6 +85,14 @@ class SkypeApi:
             return m.group(1)
         return s
 
+    def get_user_display_name(self, skypeid: str) -> str:
+        stripped_skypeid = self.strip_skypeid(skypeid)
+        if stripped_skypeid in self.contact_list:
+            contact = self.contact_list[stripped_skypeid]
+            return contact['displayname']
+        # not in contacts
+        return stripped_skypeid
+
     def handle_webhook_event(self, event_dict: dict):
         """
         Main entry point that receives all skype even callbacks
