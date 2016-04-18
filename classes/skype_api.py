@@ -163,7 +163,7 @@ class SkypeApi:
             # yay! we've been added as a contact!
             cskypeid = self.strip_skypeid(self._evt_from)
             contact = {'skypeid': cskypeid, 'displayname': from_display_name}
-            self.contact_list['skypeid'] = contact
+            self.contact_list[cskypeid] = contact
             self.save_data()
 
     def handle_conversationUpdate(self):
