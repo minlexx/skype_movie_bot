@@ -20,7 +20,7 @@ class SkypeApi:
         self.config = config
         self.token = ''
         self.authservice = AuthService(config)
-        self.contact_list = []
+        self.contact_list = {}
         self.chatrooms = []
         self._savedata_fn = '_cache/skype_savedata.json'
         self.load_savedata()
@@ -163,8 +163,8 @@ class SkypeApi:
             # yay! we've been added as a contact!
             cskypeid = self.strip_skypeid(self._evt_from)
             contact = {'skypeid': cskypeid, 'displayname': from_display_name}
-            # self.contact_list['skypeid'] = contact
-        pass
+            self.contact_list['skypeid'] = contact
+            self.save_data()
 
     def handle_conversationUpdate(self):
         """
