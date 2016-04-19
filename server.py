@@ -94,6 +94,11 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.config['APP_ID'] = ''
         self.config['APP_SECRET'] = ''
         self.config['BOT_ID'] = ''
+        self.config['TWITTER_CONSUMER_KEY'] = ''
+        self.config['TWITTER_CONSUMER_SECRET'] = ''
+        self.config['TWITTER_ACCESS_TOKEN'] = ''
+        self.config['TWITTER_ACCESS_TOKEN_SECRET'] = ''
+        self.config['TWITTER_USER_TIMELINE'] = ''
         # read config
         success_list = self._cfg.read('conf/bot.conf', encoding='utf-8')
         if 'conf/bot.conf' not in success_list:
@@ -128,6 +133,17 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
                 self.config['APP_SECRET'] = self._cfg['app']['app_secret']
             if 'bot_id' in self._cfg['app']:
                 self.config['BOT_ID'] = self._cfg['app']['bot_id']
+        if self._cfg.has_section('twitter'):
+            if 'app_consumer_key' in self._cfg['twitter']:
+                self.config['TWITTER_CONSUMER_KEY'] = self._cfg['twitter']['app_consumer_key']
+            if 'app_consumer_secret' in self._cfg['twitter']:
+                self.config['TWITTER_CONSUMER_SECRET'] = self._cfg['twitter']['app_consumer_secret']
+            if 'app_access_token' in self._cfg['twitter']:
+                self.config['TWITTER_ACCESS_TOKEN'] = self._cfg['twitter']['app_access_token']
+            if 'app_access_token_secret' in self._cfg['twitter']:
+                self.config['TWITTER_ACCESS_TOKEN_SECRET'] = self._cfg['twitter']['app_access_token_secret']
+            if 'user_timeline' in self._cfg['twitter']:
+                self.config['TWITTER_USER_TIMELINE'] = self._cfg['twitter']['user_timeline']
 
     def is_shutting_down(self):
         return self._is_shutting_down
