@@ -29,6 +29,7 @@ except ImportError:
 
 from classes.skype_api import SkypeApi
 from classes.request_handler import MovieBotRequestHandler
+from classes.twitter_service import TwitterService
 
 
 # First, inherit from ThreadingMixIn, so that its threaded process_request()
@@ -80,6 +81,8 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
             print('  My Bot ID: {0}'.format(self.get_my_skype_full_bot_id()))
         #
         self.skype = SkypeApi(self.config)
+        self.twitter = TwitterService(self.config)
+        self.skype.twitter = self.twitter
 
     def load_config(self):
         # fill in the defaults
