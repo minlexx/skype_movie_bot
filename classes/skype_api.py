@@ -149,9 +149,18 @@ class SkypeApi:
         if self.is_skypeid_user(self._evt_from) and self.is_skypeid_me(self._evt_to):
             skypeid_from = self.strip_skypeid(self._evt_from)
             display_name = self.get_user_display_name(skypeid_from)
-            self.send_message(self._evt_from,
-                              'Чего надо, {0}? Я пока не общаюсь '
-                              'в личке...'.format(display_name))
+            #
+            if message.startswith('!resend '):
+                to_resend = message[8:]
+                if len(self.chatrooms) > 0:
+                    print('Resending message from {0} to {1} chatrooms'.format(
+                        skypeid_from, len(self.chatrooms)))
+                    for chatroom in self.chatrooms:
+                        self.send_message(chatroom, to_resend)
+            else:
+                self.send_message(self._evt_from,
+                                  'Чего надо, {0}? Я пока не общаюсь '
+                                  'в личке...'.format(display_name))
         #
         # user-to-groupchat conversation
         if self.is_skypeid_user(self._evt_from) and self.is_skypeid_conversation(self._evt_to):
