@@ -6,6 +6,7 @@ import http.server
 import threading
 import configparser
 import socketserver
+import signal
 
 # check if all 3rd party libraries are installed
 try:
@@ -178,9 +179,22 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         print('BG Thread: ending')
         return
 
+    def SIGTERM_received(self):
+        self.skype.save_data()
+        # self.twitter.save_state()
+
 
 if __name__ == '__main__':
     srv = MovieBotService()
+
+
+    def sighandler_SIGTERM(sig, frame_object):
+        print('Got termination signal, saving and stopping')
+        srv.SIGTERM_received()
+        sys.exit(0)
+
+    if sys.platform == 'linux':
+        signal.signal(signal.SIGTERM, sighandler_SIGTERM)
 
     # start BG thread
     srv.start()
