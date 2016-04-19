@@ -22,6 +22,7 @@ class SkypeApi:
         self.token = ''
         self.authservice = AuthService(config)
         self.contact_list = {}
+        self.twitter = None
         # ^^ format: key: skype_id
         #  self.contact_list['alexey.min'] = {'skypeid': 'alexey.min', 'displayname': 'Alexey Min'}
         self.chatrooms = []
@@ -157,6 +158,8 @@ class SkypeApi:
                         skypeid_from, len(self.chatrooms)))
                     for chatroom in self.chatrooms:
                         self.send_message(chatroom, to_resend)
+            elif message.startswith('!get_videos'):
+                self.reply_bbvids(self._evt_from)
             else:
                 self.send_message(self._evt_from,
                                   'Чего надо, {0}? Я пока не общаюсь '
@@ -168,6 +171,18 @@ class SkypeApi:
             if message == '!help':
                 help_message = 'Я пока что умею только одну команду:\n !help - справка :)'
                 self.send_message(self._evt_to, help_message)
+            elif message == '!get_videos':
+                self.reply_bbvids(self._evt_to)
+
+    def reply_bbvids(self, reply_to: str):
+        reply = ''
+        bbvids = self.twitter.get_bb_videos(10)
+        if len(bbvids) > 0:
+            reply += '{0} results:\n'.format(len(bbvids))
+            for vid in bbvids:
+                reply += '{0} - {1}\n'.format(vid['title'], vid['url'])
+        if reply != '':
+            self.send_message(reply_to, reply)
 
     def handle_contactRelationUpdate(self):
         """
