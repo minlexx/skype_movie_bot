@@ -7,6 +7,7 @@ import threading
 import configparser
 import socketserver
 import signal
+import json
 
 # check if all 3rd party libraries are installed
 try:
@@ -94,6 +95,12 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.skype = SkypeApi(self.config)
         self.twitter = TwitterService(self.config)
         self.skype.twitter = self.twitter
+        #
+        # twitter saved state
+        self._twitter_check_timeout_sec = 15 * 60  # 15 mins
+        self._twitter_savedata_fn = '_cache/twitter_savedata.json'
+        self._posted_tweets = []
+        self.load_posted_tweets()
 
     def load_config(self):
         # fill in the defaults
@@ -172,6 +179,27 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
     def get_my_skype_full_bot_id(self):
         return '28:' + self.config['BOT_ID']
 
+    def load_posted_tweets(self):
+        try:
+            with open(self._twitter_savedata_fn, mode='rt', encoding='utf-8') as f:
+                s = f.read()
+                json_object = json.loads(s, encoding='utf-8')
+                self._posted_tweets = json_object['posted_tweets']
+                print('Loaded {0} posted tweets.'.format(len(self._posted_tweets)))
+        except OSError:
+            pass
+
+    def save_posted_tweets(self):
+        try:
+            with open(self._twitter_savedata_fn, mode='wt', encoding='utf-8') as f:
+                f.write(json.dumps({'posted_tweets': self._posted_tweets}, sort_keys=True, indent=4))
+        except OSError:
+            pass
+
+    def SIGTERM_received(self):
+        self.skype.save_data()
+        self.save_posted_tweets()
+
     # background thread function
     def run(self):
         print('BG Thread started')
@@ -188,10 +216,6 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self.shutdown()
         print('BG Thread: ending')
         return
-
-    def SIGTERM_received(self):
-        self.skype.save_data()
-        # self.twitter.save_state()
 
 
 if __name__ == '__main__':
