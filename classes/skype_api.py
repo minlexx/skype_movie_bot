@@ -156,8 +156,7 @@ class SkypeApi:
                 if len(self.chatrooms) > 0:
                     print('Resending message from {0} to {1} chatrooms'.format(
                         skypeid_from, len(self.chatrooms)))
-                    for chatroom in self.chatrooms:
-                        self.send_message(chatroom, to_resend)
+                    self.broadcast_to_chatrooms(to_resend)
             elif message.startswith('!get_videos'):
                 self.reply_bbvids(self._evt_from)
             else:
@@ -173,16 +172,6 @@ class SkypeApi:
                 self.send_message(self._evt_to, help_message)
             elif message == '!get_videos':
                 self.reply_bbvids(self._evt_to)
-
-    def reply_bbvids(self, reply_to: str):
-        reply = ''
-        bbvids = self.twitter.get_bb_videos(10)
-        if len(bbvids) > 0:
-            reply += '{0} results:\n'.format(len(bbvids))
-            for vid in bbvids:
-                reply += '{0} - {1}\n'.format(vid['title'], vid['url'])
-        if reply != '':
-            self.send_message(reply_to, reply)
 
     def handle_contactRelationUpdate(self):
         """
@@ -302,3 +291,19 @@ class SkypeApi:
             self._msg_lock.release()
 
         return True
+
+    def reply_bbvids(self, reply_to: str):
+        reply = ''
+        bbvids = self.twitter.get_bb_videos(10)
+        if len(bbvids) > 0:
+            reply += '{0} results:\n'.format(len(bbvids))
+            for vid in bbvids:
+                reply += '{0} - {1}\n'.format(vid['title'], vid['url'])
+        if reply != '':
+            self.send_message(reply_to, reply)
+
+    def broadcast_to_chatrooms(self, message: str):
+        if message == '':
+            return
+        for conf_skypeid in self.chatrooms:
+            self.send_message(conf_skypeid, message)
