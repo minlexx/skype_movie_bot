@@ -7,7 +7,7 @@ ExecStart=/home/lexx/movie_bot/server.py
 WorkingDirectory=/home/lexx/movie_bot
 User=lexx
 Group=lexx
-Restart=always
+Restart=on-failure
 RestartSec=10
 KillMode=control-group
 
