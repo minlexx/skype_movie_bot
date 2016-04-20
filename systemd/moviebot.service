@@ -1,0 +1,15 @@
+[Unit]
+Description=Skype MovieBot Service
+
+[Service]
+Type=simple
+ExecStart=/home/lexx/movie_bot/server.py
+WorkingDirectory=/home/lexx/movie_bot
+User=lexx
+Group=lexx
+Restart=always
+RestartSec=10
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
