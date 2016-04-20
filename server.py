@@ -8,6 +8,7 @@ import configparser
 import socketserver
 import signal
 import json
+import time
 
 # check if all 3rd party libraries are installed
 try:
@@ -100,6 +101,7 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         self._twitter_check_timeout_sec = 15 * 60  # 15 mins
         self._twitter_savedata_fn = '_cache/twitter_savedata.json'
         self._posted_tweets = []
+        self._skype_send_queue = []
         self.load_posted_tweets()
 
     def load_config(self):
@@ -196,6 +198,33 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         except OSError:
             pass
 
+    def get_bb_videos_from_twitter(self):
+        bbvids = self.twitter.get_bb_videos(25)
+        if len(bbvids) < 1:
+            return
+        for bbv in bbvids:
+            if bbv['tweet_id'] not in self._posted_tweets:
+                self._skype_send_queue.append(bbv)
+        print('{0} new vids to be sent of {1} loaded tweets.'.format(
+            len(self._skype_send_queue), len(bbvids)))
+
+    def post_videos_to_skype(self):
+        if len(self._skype_send_queue) < 1:
+            return
+        # merge all new videos tweets into one skype message
+        # to avoid flooding
+        message = ''
+        for bbv in self._skype_send_queue:
+            self._posted_tweets.append(bbv['tweet_id'])  # remember posted tweet
+            message += '{0} - {1}\n'.format(bbv['title'], bbv['url'])
+        if len(message) > 0:
+            # remove trailing newline
+            message = message[:-1]
+            self.skype.broadcast_to_chatrooms(message)
+        # clear send queue and save posted tweets
+        self._skype_send_queue = []
+        self.save_posted_tweets()
+
     def SIGTERM_received(self):
         self.skype.save_data()
         self.save_posted_tweets()
@@ -206,9 +235,19 @@ class MovieBotService(socketserver.ThreadingMixIn, http.server.HTTPServer, threa
         print('BG Thread: authorize to Microsoft services...')
         self.skype.refresh_token()
         #
-        # wait..
+        last_action_time = int(time.time())
+        # wait 5 seconds before checking twitter and posting to skype
+        last_action_time -= self._twitter_check_timeout_sec + 5
+        #
         while not self.user_shutdown_request:
             time.sleep(1)
+            # maybe do some work...?
+            cur_time = int(time.time())
+            if (cur_time - last_action_time) >= self._twitter_check_timeout_sec:
+                print('...time to check twitter...')
+                last_action_time = cur_time
+                self.get_bb_videos_from_twitter()
+                self.post_videos_to_skype()
         #
         # we've received shutdown request, so we must stop HTTP server now
         print('BG Thread: shutting down http server')
