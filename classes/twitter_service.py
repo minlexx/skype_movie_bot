@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import threading
 
 from tweepy import API
 from tweepy import OAuthHandler
-from tweepy.error import TweepError
 from tweepy import Status
+from tweepy.error import TweepError
 
 
 class TwitterService:
@@ -21,13 +22,17 @@ class TwitterService:
         self._tweepy_oauth = OAuthHandler(self._consumer_key, self._consumer_secret)
         self._tweepy_oauth.set_access_token(self._access_token, self._access_token_secret)
         self._tweepy_api = API(auth_handler=self._tweepy_oauth)
+        self._api_lock = threading.Lock()
 
     def get_timeline(self, cnt=10):
         timeline = []
+        self._api_lock.acquire()
         try:
             timeline = self._tweepy_api.user_timeline(self._user_timeline, count=cnt)
         except TweepError as te:
             sys.stderr.write('Twitter error: {0}\n'.format(str(te)))
+        finally:
+            self._api_lock.release()
         return timeline
 
     def get_bb_videos(self, cnt=10):
