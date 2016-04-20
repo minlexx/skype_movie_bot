@@ -14,24 +14,28 @@ try:
 except ImportError:
     sys.stderr.write('Error: python library "mako" template engine not found!\n')
     sys.stderr.write('Try the foolowing: pip3 install mako, or equivalent\n')
+    sys.exit(1)
 
 try:
     import requests
 except ImportError:
     sys.stderr.write('Error: python library "requests" not found!\n')
     sys.stderr.write('Try the foolowing: pip3 install requests, or equivalent\n')
+    sys.exit(1)
 
 try:
     import certifi
 except ImportError:
     sys.stderr.write('Error: python library "certifi" not found!\n')
     sys.stderr.write('Try the foolowing: pip3 install certifi, or equivalent\n')
+    sys.exit(1)
 
 try:
     import tweepy
 except ImportError:
     sys.stderr.write('Error: python library "tweepy" not found!\n')
     sys.stderr.write('Try the foolowing: pip3 install tweepy, or equivalent\n')
+    sys.exit(1)
 
 
 from classes.skype_api import SkypeApi
