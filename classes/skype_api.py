@@ -227,8 +227,17 @@ class SkypeApi:
         """
         members_added = []
         members_removed = []
+        topic_name = None
+        history_disclosed = None
         my_bot_skypeid = self.get_my_skype_full_bot_id()
         room_skypeid = self._evt_to
+        #
+        if 'topicName' in self._evt_dict:
+            topic_name = self._evt_dict['topicName']
+            print('Room {0} topic name changed: {1}'.format(room_skypeid, topic_name))
+        if 'historyDisclosed' in self._evt_dict:
+            history_disclosed = self._evt_dict['historyDisclosed']
+            print('Room {0} historyDisclosed changed: {1}'.format(room_skypeid, history_disclosed))
         #
         if 'membersAdded' in self._evt_dict:
             members_added = self._evt_dict['membersAdded']
