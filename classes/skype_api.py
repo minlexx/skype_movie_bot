@@ -266,13 +266,24 @@ class SkypeApi:
         # we do not handle an attachment in any way
         pass
 
-    def send_message(self, to: str, message: str):
+    def send_message(self, to: str, message: str, do_escape: bool = True):
         self.token = self.authservice.get_token()
         if self.token == '':
             sys.stderr.write('MovieBotService: cannot send message without OAuth2 token!\n')
             return False
         api_host = 'apis.skype.com'
         url = 'https://{0}/v2/conversations/{1}/activities'.format(api_host, to)
+        #
+        # Here we need to escape some special characters in a message
+        # from skype Node.js SDK:
+        # content = content.replace(/&/g, '&amp;')
+        #        .replace(/</g, '&lt;')
+        #        .replace(/>/g, '&gt;');
+        if do_escape:
+            message = message.replace('&', '&amp;')
+            message = message.replace('<', '&lt;')
+            message = message.replace('>', '&gt;')
+        #
         postdata = {
             'message': {
                 'content': message
