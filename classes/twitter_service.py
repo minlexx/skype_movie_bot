@@ -36,6 +36,12 @@ class TwitterService:
         return timeline
 
     def get_bb_videos(self, cnt=10):
+        """
+        Return format: list of dicts, each with format:
+        {'tweet_id': ..., 'title': ..., 'url': ...}
+        :param cnt: number of tweets to receive from timeline
+        :return: list of bb videos
+        """
         timeline = self.get_timeline(cnt)
         ret = []
         if len(timeline) > 0:
